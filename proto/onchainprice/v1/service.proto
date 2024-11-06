@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package onchainprice.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/KyberNetwork/grpc-service/go/onchainprice/v1";
+
+// OnchainPriceService is a service which provide API for getting data relevant token price.
+service OnchainPriceService {
+  // TODO: should change `ListPrices` to `ListLatestPrices` or add timepstamp into request as flag for getting latest price or historical price.
+  // ListPrices will send a list of ids and server will return the prices.
+  rpc ListPrices(ListPricesRequest) returns (ListPricesResponse) {}
+
+  // ListHistoricalPrices will send a list of ids,timestamp and quote and server will return the historical prices.
+  rpc ListHistoricalPrices(ListHistoricalPricesRequest) returns (ListHistoricalPricesResponse) {}
+
+  // GetPriceUSD will send a token address and server will return the price in USD.
+  rpc GetPriceUSD(GetPriceUSDRequest) returns (GetPriceUSDResponse) {}
+
+  // ListSupportedQuotes will return a list of supported quotes.
+  rpc ListSupportedQuotes(google.protobuf.Empty) returns (ListSupportedQuotesResponse) {}
+}
+
+// ListPricesRequest defines a get price request
+message ListPricesRequest {
+  repeated string tokens = 1 [(validate.rules).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+  repeated string quotes = 2 [(validate.rules).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+  bool debug = 3;
+  google.protobuf.FieldMask field_mask = 4;
+}
+
+// ListPricesResponse defines a get price response
+message ListPricesResponse {
+  int32 code = 1;
+  string message = 2;
+  ListPricesResult result = 3;
+}
+
+// ListPricesResult contains result of getting prices.
+message ListPricesResult {
+  repeated PriceInfo prices = 1;
+}
+
+// PriceInfo includes price information.
+message PriceInfo {
+  // address is token's address.
+  string address = 1;
+  // buy is token's buy price.
+  repeated PriceDetail buy = 2;
+  // sell is token's sell price.
+  repeated PriceDetail sell = 3;
+}
+
+// PriceInfo includes price information.
+message PriceDetail {
+  // type is price's type (buy or sell).
+  string type = 1;
+  // quote is the quote currency that the price is calculated by.
+  string quote = 2;
+  // price_by_quote is token's price in quote currency.
+  string price_by_quote = 3;
+  // updated_at is the time when price is updated.
+  int64 updated_at = 4;
+  // amount_out is the amount of token which can be bought by a pre-configured amount of quote token.
+  string amount_out = 5;
+  // traced_tokens is list of tokens which are used to calculate price.
+  repeated string traced_tokens = 6;
+  // traced_pools is list of pools which are used to calculate price.
+  repeated string traced_pools = 7;
+  // traced_amounts is list of amounts of tokens which are used to calculate price.
+  repeated string traced_amounts = 8;
+}
+
+// GetPriceUSDRequest defines a get price usd request
+message GetPriceUSDRequest {
+  string address = 1 [(validate.rules).string = {pattern: "^0x[0-9a-fA-F]{40}$"}];
+}
+
+// GetPriceUSDResponse defines a get price usd response
+message GetPriceUSDResponse {
+  // address is token's address.
+  string address = 1;
+  // string is the symbol of token.
+  string symbol = 2;
+  // price is token's price in USD.
+  string price = 3;
+  // updated_at is the time when price is updated.
+  int64 updated_at = 4;
+}
+
+// ListSupportedQuotesResponse defines a list supported quotes response
+message ListSupportedQuotesResponse {
+  repeated string quotes = 3;
+}
+
+// ListHistoricalPricesRequest ...
+message ListHistoricalPricesRequest {
+  repeated string tokens = 1 [(validate.rules).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+  string quote = 2 [(validate.rules).string.pattern = "^0x[0-9A-Za-z]{40}$"];
+  // if clients pass this filed, server will return price that nearest this time.
+  uint64 timestamp = 3;
+}
+
+// ListHistoricalPricesResponse ...
+message ListHistoricalPricesResponse {
+  ListHistoricalPricesResult result = 1;
+}
+
+// ListHistoricalPricesResult ...
+message ListHistoricalPricesResult {
+  repeated ListHistoricalItem prices = 1;
+}
+
+// ListHistoricalItem ...
+message ListHistoricalItem {
+  string address = 1;
+  // PriceValue ...
+  message PriceValue {
+    string price = 1;
+    string quote = 2;
+    PriceType type = 3;
+    uint64 timestamp = 4;
+  }
+  repeated PriceValue values = 2;
+}
+
+// PriceType ...
+enum PriceType {
+  PRICE_TYPE_UNSPECIFIED = 0;
+  PRICE_TYPE_BUY = 1;
+  PRICE_TYPE_SELL = 2;
+}

@@ -1,0 +1,23 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/KyberNetwork/service-proto-public
+  disable:
+    - module: buf.build/envoyproxy/protoc-gen-validate
+      file_option: go_package_prefix
+    - module: buf.build/googleapis/googleapis
+      file_option: go_package_prefix
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.35.1
+    out: gen
+    opt: paths=source_relative
+  - remote: buf.build/bufbuild/validate-go:v1.1.0
+    out: gen
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go:v1.5.1
+    out: gen
+    opt: paths=source_relative
+inputs:
+  - directory: proto
